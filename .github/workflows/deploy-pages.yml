@@ -27,13 +27,20 @@ jobs:
       - name: Prepare static site
         env:
           BLAZE_API_KEY: ${{ secrets.BLAZE_API_KEY }}
+          GATE_PASSWORD: ${{ secrets.GATE_PASSWORD }}
         run: |
           if [ -z "$BLAZE_API_KEY" ]; then
             echo "BLAZE_API_KEY repository secret is not set."
             exit 1
           fi
 
+          if [ -z "$GATE_PASSWORD" ]; then
+            echo "GATE_PASSWORD repository secret is not set."
+            exit 1
+          fi
+
           node -e "const fs=require('fs'); fs.writeFileSync('src/blaze.config.js', 'export const BLAZE_API_KEY = ' + JSON.stringify(process.env.BLAZE_API_KEY) + ';\\n')"
+          node scripts/generate-gate-config.js
 
           mkdir -p _site
           cp index.html styles.css .nojekyll _site/

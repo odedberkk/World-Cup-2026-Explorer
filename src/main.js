@@ -42,6 +42,7 @@ import {
   showStadiumCard,
   updateStadiumCardPosition,
 } from './stadiumCard.js';
+import { initAccessGate } from './gate.js';
 
 let rankingPanelClosers = {
   scorers: null,
@@ -241,17 +242,19 @@ function initPlanets() {
   }
 }
 
-function isPointerOverCountrySearch(clientX = lastPointer.x, clientY = lastPointer.y) {
+function isPointerOverTopBarChrome(clientX = lastPointer.x, clientY = lastPointer.y) {
   if (isTouchDevice) return false;
   const target = document.elementFromPoint(clientX, clientY);
-  return Boolean(target?.closest('.country-search-wrap'));
+  return Boolean(
+    target?.closest('.country-search-wrap') || target?.closest('.top-bar-title-wrap')
+  );
 }
 
 function trackPointer(event) {
   lastPointer = { x: event.clientX, y: event.clientY };
   if (!isTouchDevice) {
     updateStadiumCardPosition(lastPointer.x, lastPointer.y);
-    if (isPointerOverCountrySearch()) {
+    if (isPointerOverTopBarChrome()) {
       clearTimeout(hoverTimeout);
       pendingCountryKey = null;
       globeApi?.clearHover();
@@ -772,6 +775,40 @@ function initHostCitiesToggle() {
   updateToggleState(globeApi?.isHostCitiesVisible() ?? false);
 }
 
+function initTipsPanel() {
+  const toggle = document.getElementById('tips-toggle');
+  const panel = document.getElementById('tips-panel');
+  const closeBtn = document.getElementById('tips-panel-close');
+  if (!toggle || !panel) return;
+
+  let isOpen = false;
+
+  function setOpen(open) {
+    isOpen = open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Hide tips' : 'Show tips');
+    panel.classList.toggle('hidden', !open);
+    panel.setAttribute('aria-hidden', String(!open));
+  }
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(!isOpen);
+  });
+
+  closeBtn?.addEventListener('click', () => setOpen(false));
+
+  document.addEventListener('click', (e) => {
+    if (!isOpen) return;
+    if (e.target.closest('.top-bar-title-wrap')) return;
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen) setOpen(false);
+  });
+}
+
 function initCountrySearch() {
   const input = document.getElementById('country-search');
   const results = document.getElementById('country-search-results');
@@ -905,7 +942,7 @@ function initGlobeInteractions() {
     onError: hideLoading,
     onCountryHover: (country) => {
       if (isTouchDevice) return;
-      if (isPointerOverCountrySearch()) return;
+      if (isPointerOverTopBarChrome()) return;
       scheduleHoverCard({
         labelIdentifier: country.labelIdentifier,
         countryName: country.name,
@@ -1003,8 +1040,9 @@ async function boot() {
   initTopTeamsPanel();
   initUpcomingMatchesPanel();
   initHostCitiesToggle();
+  initTipsPanel();
   initCountrySearch();
   await waitForSdk();
 }
 
-boot();
+initAccessGate(() => boot());

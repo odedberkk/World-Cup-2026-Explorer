@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+<link rel="icon" href="assets/wsc-logo.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="assets/wsc-logo.jpg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -9,7 +11,34 @@
   <title>World Cup 2026</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="gate-locked">
+  <div id="access-gate" class="access-gate" role="dialog" aria-modal="true" aria-labelledby="access-gate-title">
+    <div class="access-gate-card">
+      <img class="access-gate-logo" src="assets/wsc-logo.jpg" alt="" width="56" height="56" decoding="async" />
+      <h1 id="access-gate-title" class="access-gate-title">World Cup 2026</h1>
+      <p class="access-gate-subtitle">Enter password to continue</p>
+      <form id="access-gate-form" class="access-gate-form">
+        <label class="access-gate-label" for="access-gate-password">Password</label>
+        <input
+          id="access-gate-password"
+          class="access-gate-input"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          required
+        />
+        <button id="access-gate-submit" class="access-gate-submit" type="submit">Enter</button>
+        <p id="access-gate-error" class="access-gate-error hidden" role="alert">Incorrect password. Try again.</p>
+      </form>
+      <p id="access-gate-config-error" class="access-gate-config-error hidden" role="alert">
+        Access gate is not configured. Create <code>src/gate.config.js</code> from
+        <code>src/gate.config.example.js</code> or run
+        <code>node scripts/generate-gate-config.js "your-password"</code>.
+      </p>
+    </div>
+  </div>
+
+  <div id="app-shell" class="app-shell" aria-hidden="true">
   <canvas id="starfield" aria-hidden="true"></canvas>
 
   <div class="nebula nebula-1" aria-hidden="true"></div>
@@ -108,12 +137,45 @@
   </aside>
 
   <header class="top-bar">
-    <h1>
-      <img class="top-bar-logo" src="assets/wsc-logo.jpg" alt="" width="28" height="28" decoding="async" />
-      World Cup 2026
-    </h1>
-    <p class="subtitle subtitle--desktop">Explore the globe — hover a nation for stats · click for highlights · country names in panels &amp; stats are clickable</p>
-    <p class="subtitle subtitle--mobile">Spin to explore · tap a nation for stats · country names in panels &amp; stats are tappable</p>
+    <div class="top-bar-title-wrap">
+      <h1>
+        <img class="top-bar-logo" src="assets/wsc-logo.jpg" alt="" width="28" height="28" decoding="async" />
+        World Cup 2026
+      </h1>
+      <button
+        id="tips-toggle"
+        class="tips-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="tips-panel"
+        aria-label="Show tips"
+      >
+        <span class="tips-toggle-icon" aria-hidden="true">?</span>
+      </button>
+      <div
+        id="tips-panel"
+        class="tips-panel hidden"
+        role="dialog"
+        aria-labelledby="tips-panel-title"
+        aria-hidden="true"
+      >
+        <div class="tips-panel-header">
+          <h2 id="tips-panel-title" class="tips-panel-title">Tips</h2>
+          <button id="tips-panel-close" class="tips-panel-close" type="button" aria-label="Close tips">×</button>
+        </div>
+        <ul class="tips-panel-list">
+          <li>When a nation is playing live, highlights open as a live story instead of moments</li>
+          <li>Greener, taller countries have more group-stage points</li>
+          <li>Country names in panels &amp; stats are clickable — fly there instantly</li>
+          <li>Search any nation from the bar below</li>
+          <li>Use the left toolbar for top scorers, teams, upcoming matches &amp; stadiums</li>
+          <li>Live matches pulse on the map and in stats cards</li>
+          <li>Drag to explore — the globe auto-rotates when idle</li>
+        </ul>
+      </div>
+    </div>
+    <p class="subtitle subtitle--desktop">Explore the globe — hover a nation for stats · click for highlights</p>
+    <p class="subtitle subtitle--mobile">Spin to explore · tap a nation for stats</p>
     <div class="country-search-wrap">
       <input
         id="country-search"
@@ -162,9 +224,8 @@
     <div class="loading-spinner"></div>
     <span>Loading World Cup 2026 Explorer…</span>
   </div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/globe.gl/dist/globe.gl.min.js"></script>
-  <script src="https://sdk.mvp.fan/web-sdk/0.35.4/index.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

@@ -44,20 +44,31 @@ Interactive 3D globe for FIFA World Cup 2026 — explore host cities, live match
 ## Local development
 
 1. Copy `src/blaze.config.example.js` to `src/blaze.config.js` and set your Blaze API key.
-2. Serve the project root as static files. Python works well:
+2. Generate `src/gate.config.js` from your access password (PBKDF2-SHA256 + salt):
 
 ```bash
 cp src/blaze.config.example.js src/blaze.config.js
+node scripts/generate-gate-config.js "your-password"
+```
+
+3. Serve the project root as static files. Python works well:
+
+```bash
 python -m http.server 8080
 ```
 
-Then open [http://localhost:8080](http://localhost:8080).
+Then open [http://localhost:8080](http://localhost:8080). Enter the password to unlock the globe. A valid unlock persists for the browser tab session.
 
 ## Deployment
 
 Pushes to `main` deploy automatically to **GitHub Pages** via `.github/workflows/deploy-pages.yml`. Enable Pages under **Settings → Pages → GitHub Actions** on first setup.
 
-Add a repository secret `**BLAZE_API_KEY`** (Settings → Secrets and variables → Actions). The deploy workflow writes it into `src/blaze.config.js` at build time; the key is not committed to the repo.
+Add repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `BLAZE_API_KEY` — injected into `src/blaze.config.js` at build time
+- `GATE_PASSWORD` — hashed into `src/gate.config.js` at build time (plain password is never committed)
+
+The access gate is client-side only: it blocks casual access but is not a substitute for server-side authentication on a public static site.
 
 ## Data sources
 

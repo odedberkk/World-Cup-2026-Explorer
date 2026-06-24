@@ -5,3 +5,4 @@ desktop.ini
 .env
 .env.*
 src/blaze.config.js
+src/gate.config.js
