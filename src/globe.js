@@ -24,6 +24,9 @@ const TOP_STANDING_ALT = BASE_ALTITUDE + POINTS_ALTITUDE_MAX;
 const LIVE_BREATH_FLOOR_ALT = BASE_ALTITUDE;
 const LIVE_BREATH_PEAK_ALT = TOP_STANDING_ALT + 0.004;
 const SCORED_BREATH_PEAK_ALT = TOP_STANDING_ALT + 0.006;
+const HOST_CITY_POLE_BASE_ALT = SCORED_BREATH_PEAK_ALT + 0.004;
+const HOST_CITY_POLE_HEIGHT = 0.052;
+const HOST_CITY_PIN_HEAD_ALT = HOST_CITY_POLE_BASE_ALT + HOST_CITY_POLE_HEIGHT;
 
 const POINTS_HEAT = {
   low: [255, 230, 70, 0.82],
@@ -258,25 +261,28 @@ function initHostCityLayer(globe) {
     .ringMaxRadius(2.8)
     .ringPropagationSpeed(2.5)
     .ringRepeatPeriod(1400)
-    .ringAltitude(0.012)
+    .ringAltitude(HOST_CITY_POLE_BASE_ALT)
     .pointsData([])
     .pointLat('lat')
     .pointLng('lng')
     .pointColor('color')
-    .pointAltitude(0.014)
-    .pointRadius(0.35)
+    .pointAltitude(HOST_CITY_PIN_HEAD_ALT)
+    .pointRadius(0.18)
+    .pointsTransitionDuration(200)
     .htmlElementsData([])
     .htmlLat('lat')
     .htmlLng('lng')
-    .htmlAltitude(0.018)
+    .htmlAltitude(HOST_CITY_PIN_HEAD_ALT)
     .htmlElement((city) => {
       const el = document.createElement('div');
       el.className = `host-city-marker${city.isLive ? ' host-city-marker--live' : ''}`;
       el.dataset.country = city.country;
       el.dataset.city = city.city;
       el.innerHTML = `
-        <span class="host-city-glow" aria-hidden="true"></span>
-        <span class="host-city-icon" aria-hidden="true">⚽</span>
+        <div class="host-city-pin-head">
+          <span class="host-city-glow" aria-hidden="true"></span>
+          <span class="host-city-icon" aria-hidden="true">⚽</span>
+        </div>
         <div class="host-city-tooltip" role="tooltip">
           <span class="host-city-stadium">${city.stadium}</span>
           <span class="host-city-name">${city.city}</span>
@@ -289,10 +295,7 @@ function initHostCityLayer(globe) {
 function setHostCityLayerData(globe, cities) {
   const liveCities = cities.filter((city) => city.isLive);
 
-  globe
-    .ringsData(liveCities)
-    .pointsData(liveCities)
-    .htmlElementsData(cities);
+  globe.ringsData(liveCities).pointsData(cities).htmlElementsData(cities);
 }
 
 function buildHostCityLayerData() {
