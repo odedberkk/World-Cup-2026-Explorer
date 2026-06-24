@@ -10,6 +10,7 @@ import {
   hideHoverCard,
   getActiveCountry,
   initBlaze,
+  isCardVisible,
   isCoarsePointerDevice,
   notifyLiveMatchLabelsReady,
   playHighlights,
@@ -33,6 +34,7 @@ import {
   renderTopTeamsLoadingHtml,
 } from './topTeams.js';
 import { findHostCity } from './hostCities.js';
+import { fadePlayerCurtainIn, fadePlayerCurtainOut } from './playerCurtain.js';
 import {
   hideStadiumCard,
   initStadiumCard,
@@ -239,10 +241,24 @@ function initPlanets() {
   }
 }
 
+function isPointerOverCountrySearch(clientX = lastPointer.x, clientY = lastPointer.y) {
+  if (isTouchDevice) return false;
+  const target = document.elementFromPoint(clientX, clientY);
+  return Boolean(target?.closest('.country-search-wrap'));
+}
+
 function trackPointer(event) {
   lastPointer = { x: event.clientX, y: event.clientY };
   if (!isTouchDevice) {
     updateStadiumCardPosition(lastPointer.x, lastPointer.y);
+    if (isPointerOverCountrySearch()) {
+      clearTimeout(hoverTimeout);
+      pendingCountryKey = null;
+      globeApi?.clearHover();
+      if (isCardVisible() && !selectedCountryAutoDismiss) {
+        scheduleHideHoverCard();
+      }
+    }
     return;
   }
 }
@@ -393,7 +409,7 @@ function selectCountry(countryTitle) {
   const input = document.getElementById('country-search');
   const results = document.getElementById('country-search-results');
   if (input) {
-    input.value = isTouchDevice ? '' : resolvedTitle;
+    input.value = '';
     input.blur();
   }
   if (results) {
@@ -875,6 +891,12 @@ function flyToCountrySilently(countryName) {
   globeApi?.flyToCountry(displayName, FLY_TRANSITION_MS, { silent: true });
 }
 
+async function openDesktopHighlights(labelIdentifier, countryName) {
+  await fadePlayerCurtainIn();
+  const started = await playHighlights(labelIdentifier, countryName);
+  if (!started) await fadePlayerCurtainOut();
+}
+
 function initGlobeInteractions() {
   const container = document.getElementById('globe-container');
 
@@ -883,6 +905,7 @@ function initGlobeInteractions() {
     onError: hideLoading,
     onCountryHover: (country) => {
       if (isTouchDevice) return;
+      if (isPointerOverCountrySearch()) return;
       scheduleHoverCard({
         labelIdentifier: country.labelIdentifier,
         countryName: country.name,
@@ -903,7 +926,7 @@ function initGlobeInteractions() {
       if (!country.labelIdentifier) return;
 
       dismissCountryHoverCard();
-      playHighlights(country.labelIdentifier, country.name);
+      openDesktopHighlights(country.labelIdentifier, country.name);
     },
   });
 
@@ -918,6 +941,18 @@ function initGlobeInteractions() {
         clearTimeout(hoverTimeout);
       }
     });
+  } else {
+    container?.addEventListener(
+      'touchend',
+      (e) => {
+        if (e.target.closest('.host-city-marker')) return;
+        if (e.target.closest('#stadium-card')) return;
+        if (e.target.closest('#hover-card')) return;
+        if (e.target.closest('.globe-controls')) return;
+        if (isStadiumCardVisible()) dismissStadiumCard();
+      },
+      { passive: true }
+    );
   }
 
   document.addEventListener('keydown', (e) => {
@@ -940,6 +975,7 @@ async function boot() {
   initPlanets();
   initBlaze({
     onMobileClose: () => globeApi?.clearFocus(),
+    onDismissStadiumCard: () => dismissStadiumCard(),
     onPlayerDidAppear: () => {
       setGlobeRotationPausedFor('player', true);
       const controls = globeApi?.globe?.controls?.();
@@ -949,6 +985,7 @@ async function boot() {
       setGlobeRotationPausedFor('player', false);
       const controls = globeApi?.globe?.controls?.();
       if (controls) controls.enabled = true;
+      if (!isTouchDevice) fadePlayerCurtainOut();
     },
     onStatsCountrySelect: selectCountry,
   });

@@ -582,12 +582,25 @@ export function renderStatsHtml(stats) {
     `
       : '';
 
+  const hasCountryLinks = Boolean(
+    stats.lastResult?.opponent ||
+      stats.nextMatch?.opponent ||
+      stats.recentResults.some((result) => result.opponent)
+  );
+
+  const isMobileStatsCard = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const tipHtml =
+    hasCountryLinks && !isMobileStatsCard
+      ? '<p class="stats-explore-tip">Tip: click any country name to jump there</p>'
+      : '';
+
   return `
     <div class="hover-card-stats">
       ${standingHtml}
       ${lastHtml}
       ${nextHtml}
       ${recentHtml}
+      ${tipHtml}
     </div>
   `;
 }

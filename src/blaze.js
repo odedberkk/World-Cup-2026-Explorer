@@ -18,6 +18,7 @@ let activeCountry = null;
 let activeLabelIdentifier = null;
 let activePlaybackMode = 'moment';
 let onMobileCardClose = null;
+let onDismissStadiumCard = null;
 let onPlayerDismissedCallback = null;
 let onPlayerDidAppearCallback = null;
 let onStatsCountrySelect = null;
@@ -450,6 +451,9 @@ export function isCardVisible() {
 
 function closeMobileCard() {
   hideHoverCard();
+  if (document.getElementById('stadium-card')?.classList.contains('visible')) {
+    onDismissStadiumCard?.();
+  }
   onMobileCardClose?.();
 }
 
@@ -613,11 +617,13 @@ async function populateStats(displayName, x, y, { keepPosition = false } = {}) {
 
 export function initBlaze({
   onMobileClose,
+  onDismissStadiumCard: dismissStadium,
   onPlayerDismissed,
   onPlayerDidAppear,
   onStatsCountrySelect: onCountrySelect,
 } = {}) {
   onMobileCardClose = onMobileClose ?? null;
+  onDismissStadiumCard = dismissStadium ?? null;
   onPlayerDismissedCallback = onPlayerDismissed ?? null;
   onPlayerDidAppearCallback = onPlayerDidAppear ?? null;
   onStatsCountrySelect = onCountrySelect ?? null;
@@ -728,7 +734,7 @@ export function showHoverCard({
 }
 
 export async function playHighlights(labelIdentifier, countryName) {
-  if (!sdkReady || !labelIdentifier) return;
+  if (!sdkReady || !labelIdentifier) return false;
 
   const displayName = countryName
     ? getCountryDisplayName(countryName)
@@ -750,6 +756,8 @@ export async function playHighlights(labelIdentifier, countryName) {
       return buildCountryDataSource(labelIdentifier, { liveFirst });
     })(),
   });
+
+  return true;
 }
 
 export function getActiveCountry() {

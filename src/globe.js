@@ -25,7 +25,7 @@ const LIVE_BREATH_FLOOR_ALT = BASE_ALTITUDE;
 const LIVE_BREATH_PEAK_ALT = TOP_STANDING_ALT + 0.004;
 const SCORED_BREATH_PEAK_ALT = TOP_STANDING_ALT + 0.006;
 const HOST_CITY_POLE_BASE_ALT = SCORED_BREATH_PEAK_ALT + 0.004;
-const HOST_CITY_POLE_HEIGHT = 0.052;
+const HOST_CITY_POLE_HEIGHT = 0.072;
 const HOST_CITY_PIN_HEAD_ALT = HOST_CITY_POLE_BASE_ALT + HOST_CITY_POLE_HEIGHT;
 
 const POINTS_HEAT = {
@@ -281,7 +281,7 @@ function initHostCityLayer(globe) {
       el.innerHTML = `
         <div class="host-city-pin-head">
           <span class="host-city-glow" aria-hidden="true"></span>
-          <span class="host-city-icon" aria-hidden="true">⚽</span>
+          <img class="host-city-icon" src="assets/world-cup-ball.png" alt="" width="15" height="15" decoding="async" aria-hidden="true" />
         </div>
         <div class="host-city-tooltip" role="tooltip">
           <span class="host-city-stadium">${city.stadium}</span>

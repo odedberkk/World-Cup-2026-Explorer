@@ -15,12 +15,14 @@ Interactive 3D globe for FIFA World Cup 2026 — explore host cities, live match
 
 ## Tech stack
 
-| Layer | Technology |
-| --- | --- |
-| Globe | [Globe.gl](https://github.com/vasturiano/globe.gl) |
+
+| Layer | Technology                                                          |
+| ----- | ------------------------------------------------------------------- |
+| Globe | [Globe.gl](https://github.com/vasturiano/globe.gl)                  |
 | Video | [Blaze Web SDK](https://dev.wsc-sports.com/docs/web-blazesdk-class) |
-| Stats | [wcup2026.org](https://wcup2026.org) API |
-| App | Vanilla ES modules — no build step |
+| Stats | [wcup2026.org](https://wcup2026.org) API                            |
+| App   | Vanilla ES modules — no build step                                  |
+
 
 ## Project structure
 
@@ -55,7 +57,7 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 Pushes to `main` deploy automatically to **GitHub Pages** via `.github/workflows/deploy-pages.yml`. Enable Pages under **Settings → Pages → GitHub Actions** on first setup.
 
-Add a repository secret **`BLAZE_API_KEY`** (Settings → Secrets and variables → Actions). The deploy workflow writes it into `src/blaze.config.js` at build time; the key is not committed to the repo.
+Add a repository secret `**BLAZE_API_KEY`** (Settings → Secrets and variables → Actions). The deploy workflow writes it into `src/blaze.config.js` at build time; the key is not committed to the repo.
 
 ## Data sources
 
@@ -63,3 +65,4 @@ Add a repository secret **`BLAZE_API_KEY`** (Settings → Secrets and variables 
 - **Country polygons** — [Natural Earth 110m countries GeoJSON](https://github.com/nvkelso/natural-earth-vector)
 - **Flags** — [flagcdn.com](https://flagcdn.com)
 - **Blaze content** — Per-country label identifiers in `src/countryMap.js`
+

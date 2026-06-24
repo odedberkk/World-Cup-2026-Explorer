@@ -158,9 +158,7 @@ export function initStadiumCard({ onMobileClose: closeHandler } = {}) {
   onMobileClose = closeHandler ?? null;
   preloadStadiumImages();
 
-  document.getElementById('stadium-card-close')?.addEventListener('click', hideStadiumCard);  backdropEl()?.addEventListener('click', () => {
-    if (isCoarsePointerDevice() && isStadiumCardVisible()) hideStadiumCard();
-  });
+  document.getElementById('stadium-card-close')?.addEventListener('click', hideStadiumCard);
 }
 
 export function isStadiumCardVisible() {

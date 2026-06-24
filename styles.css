@@ -10,6 +10,7 @@
 }
 
 :root {
+  --light-blue: #90d1ff;
   --gold: #f5b942;
   --gold-bright: #ffd166;
   --glass-bg: rgba(12, 14, 28, 0.88);
@@ -132,7 +133,7 @@ textarea {
 
 .top-bar .subtitle {
   font-size: clamp(0.72rem, 2.8vw, 0.85rem);
-  color: var(--text-muted);
+  color: white;
   margin-top: 4px;
 }
 
@@ -247,9 +248,29 @@ textarea {
   visibility: hidden;
 }
 
+.player-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+.player-curtain.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .intro-curtain {
     display: none;
+  }
+
+  .player-curtain {
+    transition: none;
   }
 }
 
@@ -535,6 +556,15 @@ textarea {
   outline: 2px solid var(--gold-bright, #f5b942);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+.stats-explore-tip {
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .stats-live-minute {
@@ -1556,8 +1586,10 @@ textarea {
 .host-city-icon {
   position: relative;
   z-index: 1;
-  font-size: 15px;
-  line-height: 1;
+  display: block;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
 }
 
@@ -1730,7 +1762,8 @@ textarea {
   }
 
   .host-city-icon {
-    font-size: 12px;
+    width: 16px;
+    height: 16px;
   }
 
   .host-city-glow {
