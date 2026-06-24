@@ -381,6 +381,10 @@ body.gate-locked .app-shell {
   color: var(--gold-bright, #f5b942);
 }
 
+.tips-panel-list--mobile {
+  display: none;
+}
+
 @keyframes tips-panel-in {
   from {
     opacity: 0;
@@ -420,9 +424,27 @@ body.gate-locked .app-shell {
     display: block;
   }
 
-  .tips-toggle,
-  .tips-panel {
+  .tips-panel-list--desktop {
     display: none;
+  }
+
+  .tips-panel-list--mobile {
+    display: flex;
+  }
+
+  .tips-toggle {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tips-panel {
+    max-height: min(52vh, 360px);
+  }
+
+  .tips-panel-list {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: min(44vh, 300px);
   }
 }
 
