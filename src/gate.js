@@ -5,6 +5,8 @@ import {
 } from './gate.config.js';
 
 const SESSION_STORAGE_KEY = 'wc2026_gate_session';
+const BLAZE_KEY_SESSION = 'wc2026_blaze_key_session';
+const BLAZE_KEY_LABEL = '|blaze-key-v1';
 const EXTERNAL_SCRIPTS = [
   'https://cdn.jsdelivr.net/npm/globe.gl/dist/globe.gl.min.js',
   'https://sdk.mvp.fan/web-sdk/0.35.4/index.js',
@@ -44,14 +46,10 @@ function assertSecureVerificationContext() {
   }
 }
 
-async function derivePasswordHash(password) {
-  assertSecureVerificationContext();
-
-  const salt = decodeBase64(GATE_PASSWORD_SALT_B64);
-  const encoder = new TextEncoder();
+async function deriveBitsFromMaterial(material, salt) {
   const keyMaterial = await getCryptoSubtle().importKey(
     'raw',
-    encoder.encode(password),
+    material,
     'PBKDF2',
     false,
     ['deriveBits']
@@ -69,6 +67,53 @@ async function derivePasswordHash(password) {
   );
 
   return new Uint8Array(derivedBits);
+}
+
+async function derivePasswordHash(password) {
+  assertSecureVerificationContext();
+  const encoder = new TextEncoder();
+  return deriveBitsFromMaterial(encoder.encode(password), decodeBase64(GATE_PASSWORD_SALT_B64));
+}
+
+async function deriveBlazeAesKey(password) {
+  assertSecureVerificationContext();
+  const encoder = new TextEncoder();
+  return deriveBitsFromMaterial(
+    encoder.encode(`${password}${BLAZE_KEY_LABEL}`),
+    decodeBase64(GATE_PASSWORD_SALT_B64)
+  );
+}
+
+async function decryptBlazeApiKey(password) {
+  const { BLAZE_API_KEY_CIPHERTEXT_B64, BLAZE_API_KEY_IV_B64 } = await import('./blaze.config.js');
+
+  if (
+    !BLAZE_API_KEY_CIPHERTEXT_B64 ||
+    !BLAZE_API_KEY_IV_B64 ||
+    BLAZE_API_KEY_CIPHERTEXT_B64 === 'replace-me'
+  ) {
+    throw new Error('BLAZE_CONFIG_MISSING');
+  }
+
+  const aesKeyBytes = await deriveBlazeAesKey(password);
+  const aesKey = await getCryptoSubtle().importKey(
+    'raw',
+    aesKeyBytes,
+    'AES-GCM',
+    false,
+    ['decrypt']
+  );
+
+  const plaintext = await getCryptoSubtle().decrypt(
+    {
+      name: 'AES-GCM',
+      iv: decodeBase64(BLAZE_API_KEY_IV_B64),
+    },
+    aesKey,
+    decodeBase64(BLAZE_API_KEY_CIPHERTEXT_B64)
+  );
+
+  return new TextDecoder().decode(plaintext);
 }
 
 function isConfiguredGate() {
@@ -92,8 +137,18 @@ function hasValidSession() {
   }
 }
 
-function establishSession() {
+function getStoredBlazeApiKey() {
+  return sessionStorage.getItem(BLAZE_KEY_SESSION);
+}
+
+function establishSession(blazeApiKey) {
   sessionStorage.setItem(SESSION_STORAGE_KEY, GATE_PASSWORD_HASH_B64);
+  sessionStorage.setItem(BLAZE_KEY_SESSION, blazeApiKey);
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  sessionStorage.removeItem(BLAZE_KEY_SESSION);
 }
 
 function loadScript(src) {
@@ -160,7 +215,7 @@ function showConfigError() {
   form?.classList.add('hidden');
 }
 
-async function unlock(onUnlock) {
+async function unlock(onUnlock, blazeApiKey) {
   const { gate } = getGateElements();
   const appShell = document.getElementById('app-shell');
 
@@ -170,7 +225,7 @@ async function unlock(onUnlock) {
   appShell?.removeAttribute('aria-hidden');
 
   await loadExternalScripts();
-  await onUnlock();
+  await onUnlock(blazeApiKey);
 }
 
 function bindGateForm(onUnlock) {
@@ -199,9 +254,10 @@ function bindGateForm(onUnlock) {
         return;
       }
 
+      const blazeApiKey = await decryptBlazeApiKey(password);
       input.value = '';
-      await unlock(onUnlock);
-      establishSession();
+      await unlock(onUnlock, blazeApiKey);
+      establishSession(blazeApiKey);
     } catch (error) {
       console.error('Access gate failed', error);
 
@@ -209,6 +265,8 @@ function bindGateForm(onUnlock) {
         showGateError('Open this site via https:// or http://localhost (not an IP address).');
       } else if (error?.message === 'CRYPTO_UNAVAILABLE') {
         showGateError('This browser cannot verify passwords here. Try Chrome, Edge, or Safari.');
+      } else if (error?.message === 'BLAZE_CONFIG_MISSING') {
+        showGateError('Blaze config is missing. Regenerate src/blaze.config.js.');
       } else if (error?.message?.startsWith('Failed to load')) {
         showGateError('Password accepted, but required scripts failed to load. Check your connection.');
       } else {
@@ -238,12 +296,19 @@ export function initAccessGate(onUnlock) {
   }
 
   if (hasValidSession()) {
+    const blazeApiKey = getStoredBlazeApiKey();
+    if (!blazeApiKey) {
+      clearSession();
+      bindGateForm(onUnlock);
+      getGateElements().input?.focus();
+      return;
+    }
+
     setGateSubmitting(true);
-    unlock(onUnlock)
-      .then(() => establishSession())
+    unlock(onUnlock, blazeApiKey)
       .catch((error) => {
         console.error('Access gate session unlock failed', error);
-        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        clearSession();
         bindGateForm(onUnlock);
         showGateError('Session expired. Enter the password again.');
       })

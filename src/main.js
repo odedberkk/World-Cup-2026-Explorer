@@ -1007,10 +1007,11 @@ function waitForSdk() {
   });
 }
 
-async function boot() {
+async function boot(blazeApiKey) {
   initStarfield();
   initPlanets();
   initBlaze({
+    apiKey: blazeApiKey,
     onMobileClose: () => globeApi?.clearFocus(),
     onDismissStadiumCard: () => dismissStadiumCard(),
     onPlayerDidAppear: () => {
@@ -1045,4 +1046,4 @@ async function boot() {
   await waitForSdk();
 }
 
-initAccessGate(() => boot());
+initAccessGate((blazeApiKey) => boot(blazeApiKey));

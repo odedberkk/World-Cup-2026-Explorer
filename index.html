@@ -31,9 +31,8 @@
         <p id="access-gate-error" class="access-gate-error hidden" role="alert">Incorrect password. Try again.</p>
       </form>
       <p id="access-gate-config-error" class="access-gate-config-error hidden" role="alert">
-        Access gate is not configured. Create <code>src/gate.config.js</code> from
-        <code>src/gate.config.example.js</code> or run
-        <code>node scripts/generate-gate-config.js "your-password"</code>.
+        Access gate is not configured. Run
+        <code>GATE_PASSWORD="..." BLAZE_API_KEY="..." node scripts/generate-secrets-config.js</code>.
       </p>
     </div>
   </div>

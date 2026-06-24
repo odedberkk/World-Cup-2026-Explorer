@@ -43,15 +43,13 @@ Interactive 3D globe for FIFA World Cup 2026 — explore host cities, live match
 
 ## Local development
 
-1. Copy `src/blaze.config.example.js` to `src/blaze.config.js` and set your Blaze API key.
-2. Generate `src/gate.config.js` from your access password (PBKDF2-SHA256 + salt):
+1. Generate encrypted `src/blaze.config.js` and `src/gate.config.js`:
 
 ```bash
-cp src/blaze.config.example.js src/blaze.config.js
-node scripts/generate-gate-config.js "your-password"
+GATE_PASSWORD="your-password" BLAZE_API_KEY="your-blaze-api-key" node scripts/generate-secrets-config.js
 ```
 
-3. Serve the project root as static files. Python works well:
+2. Serve the project root as static files. Python works well:
 
 ```bash
 python -m http.server 8080
@@ -65,10 +63,10 @@ Pushes to `main` deploy automatically to **GitHub Pages** via `.github/workflows
 
 Add repository secrets under **Settings → Secrets and variables → Actions**:
 
-- `BLAZE_API_KEY` — injected into `src/blaze.config.js` at build time
-- `GATE_PASSWORD` — hashed into `src/gate.config.js` at build time (plain password is never committed)
+- `BLAZE_API_KEY` — AES-GCM encrypted into `src/blaze.config.js` at build time
+- `GATE_PASSWORD` — PBKDF2-hashed into `src/gate.config.js` at build time (plain password is never committed)
 
-The access gate is client-side only: it blocks casual access but is not a substitute for server-side authentication on a public static site.
+Both files are generated together by `scripts/generate-secrets-config.js`. The Blaze key is only decrypted in memory after a successful password check. The access gate is client-side only: it blocks casual access but is not a substitute for server-side authentication on a public static site.
 
 ## Data sources
 

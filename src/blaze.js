@@ -7,8 +7,6 @@ import {
   renderStatsHtml,
   renderStatsLoadingHtml,
 } from './matchStats.js';
-import { BLAZE_API_KEY } from './blaze.config.js';
-
 const LIVE_STORY_PROBE_CONTAINER_ID = 'blaze-live-story-probe';
 const LIVE_STORY_PROBE_TTL_MS = 45_000;
 const LIVE_STORY_PROBE_TIMEOUT_MS = 8_000;
@@ -616,6 +614,7 @@ async function populateStats(displayName, x, y, { keepPosition = false } = {}) {
 }
 
 export function initBlaze({
+  apiKey,
   onMobileClose,
   onDismissStadiumCard: dismissStadium,
   onPlayerDismissed,
@@ -632,8 +631,8 @@ export function initBlaze({
 
   if (typeof BlazeSDK !== 'undefined' && BlazeSDK.isInitialized?.()) {
     handleSdkConnect();
-  } else if (!BlazeSDK.isInitialized()) {
-    BlazeSDK.Initialize(BLAZE_API_KEY, {
+  } else if (!BlazeSDK.isInitialized() && apiKey) {
+    BlazeSDK.Initialize(apiKey, {
       runInShadowDom: true,
       shouldModifyUrlWithContentId: false,
     });
