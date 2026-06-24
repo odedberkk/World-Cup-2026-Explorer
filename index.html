@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>World Cup 2026</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+
+  <div class="nebula nebula-1" aria-hidden="true"></div>
+  <div class="nebula nebula-2" aria-hidden="true"></div>
+
+  <div id="planets" class="planets" aria-hidden="true"></div>
+
+  <aside class="globe-controls" aria-label="Globe controls">
+    <nav class="globe-controls-toolbar" aria-label="Quick actions">
+      <button
+        id="host-cities-toggle"
+        class="globe-control-toggle host-cities-toggle"
+        type="button"
+        aria-pressed="false"
+        aria-label="Show stadiums"
+      >
+        <span class="globe-control-toggle-icon host-cities-toggle-icon" aria-hidden="true">📍</span>
+        <span class="globe-control-toggle-label host-cities-toggle-label">Hide Stadiums</span>
+      </button>
+
+      <button
+        id="top-scorers-toggle"
+        class="globe-control-toggle top-scorers-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="top-scorers-panel"
+      >
+        <span class="globe-control-toggle-icon" aria-hidden="true">🏆</span>
+        <span class="globe-control-toggle-label">Top scorers</span>
+      </button>
+
+      <div
+        id="top-scorers-panel"
+        class="top-scorers-panel hidden"
+        role="region"
+        aria-labelledby="top-scorers-toggle"
+        aria-hidden="true"
+      >
+        <div class="top-scorers-panel-header">
+          <h2 class="top-scorers-panel-title">Golden Boot</h2>
+          <span class="top-scorers-panel-subtitle">Top 20 · WC 2026</span>
+        </div>
+        <div id="top-scorers-body" class="top-scorers-body"></div>
+      </div>
+
+      <button
+        id="top-teams-toggle"
+        class="globe-control-toggle top-teams-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="top-teams-panel"
+      >
+        <span class="globe-control-toggle-icon" aria-hidden="true">📊</span>
+        <span class="globe-control-toggle-label">Top teams</span>
+      </button>
+
+      <div
+        id="top-teams-panel"
+        class="top-teams-panel hidden"
+        role="region"
+        aria-labelledby="top-teams-toggle"
+        aria-hidden="true"
+      >
+        <div class="top-teams-panel-header">
+          <h2 class="top-teams-panel-title">Top Teams</h2>
+          <span class="top-teams-panel-subtitle">Group stage · WC 2026</span>
+        </div>
+        <div id="top-teams-body" class="top-teams-body"></div>
+      </div>
+
+      <button
+        id="upcoming-matches-toggle"
+        class="globe-control-toggle upcoming-matches-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="upcoming-matches-panel"
+      >
+        <span class="globe-control-toggle-icon" aria-hidden="true">📅</span>
+        <span class="globe-control-toggle-label">Upcoming</span>
+      </button>
+
+      <div
+        id="upcoming-matches-panel"
+        class="upcoming-matches-panel hidden"
+        role="region"
+        aria-labelledby="upcoming-matches-toggle"
+        aria-hidden="true"
+      >
+        <div class="upcoming-matches-panel-header">
+          <h2 class="upcoming-matches-panel-title">Upcoming Matches</h2>
+          <span class="upcoming-matches-panel-subtitle">Next 10 · local time</span>
+        </div>
+        <div id="upcoming-matches-body" class="upcoming-matches-body"></div>
+      </div>
+    </nav>
+  </aside>
+
+  <header class="top-bar">
+    <h1>
+      <img class="top-bar-logo" src="assets/wsc-logo.jpg" alt="" width="28" height="28" decoding="async" />
+      World Cup 2026
+    </h1>
+    <p class="subtitle subtitle--desktop">Explore the globe — hover a nation for stats · click for highlights</p>
+    <p class="subtitle subtitle--mobile">Spin to explore · tap a nation for stats </p>
+    <div class="country-search-wrap">
+      <input
+        id="country-search"
+        class="country-search"
+        type="search"
+        placeholder="Search nation…"
+        autocomplete="off"
+        enterkeyhint="search"
+        aria-label="Search for a nation"
+        aria-expanded="false"
+        aria-controls="country-search-results"
+        role="combobox"
+      />
+      <ul id="country-search-results" class="country-search-results hidden" role="listbox"></ul>
+    </div>
+  </header>
+
+  <div id="globe-container" aria-label="Interactive 3D world globe"></div>
+
+  <div id="intro-curtain" class="intro-curtain" aria-hidden="true"></div>
+
+  <div id="hover-card" class="hover-card hidden" role="dialog" aria-modal="true" aria-live="polite" aria-hidden="true">
+    <button id="hover-card-close" class="hover-card-close" type="button" aria-label="Close">×</button>
+    <div id="hover-card-header" class="hover-card-header"></div>
+    <div id="hover-card-body" class="hover-card-body"></div>
+    <div id="hover-card-actions" class="hover-card-actions hidden">
+      <button id="watch-highlights-btn" class="watch-highlights-btn" type="button">
+        <span class="watch-highlights-btn-live hidden" aria-hidden="true"></span>
+        <span class="watch-highlights-btn-label">Watch Highlights ➔</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="stadium-card" class="stadium-card hidden" role="dialog" aria-modal="true" aria-live="polite" aria-hidden="true">
+    <button id="stadium-card-close" class="stadium-card-close" type="button" aria-label="Close">×</button>
+    <div id="stadium-card-hero" class="stadium-card-hero-wrap"></div>
+    <div id="stadium-card-body" class="stadium-card-body"></div>
+  </div>
+
+  <div id="mobile-backdrop" class="mobile-backdrop hidden" aria-hidden="true"></div>
+
+  <div id="blaze-live-story-probe" class="blaze-live-story-probe" aria-hidden="true"></div>
+
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <span>Loading World Cup 2026 Explorer…</span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl/dist/globe.gl.min.js"></script>
+  <script src="https://sdk.mvp.fan/web-sdk/0.35.4/index.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
