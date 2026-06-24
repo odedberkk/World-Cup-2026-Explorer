@@ -55,7 +55,7 @@ GATE_PASSWORD="your-password" BLAZE_API_KEY="your-blaze-api-key" node scripts/ge
 python -m http.server 8080
 ```
 
-Then open [http://localhost:8080](http://localhost:8080). Enter the password to unlock the globe. A valid unlock persists for the browser tab session.
+Then open [http://localhost:8080](http://localhost:8080). Enter the password to unlock the globe. A valid unlock persists in local storage until you clear site data or the password is changed at deploy time.
 
 ## Deployment
 

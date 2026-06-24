@@ -4,7 +4,7 @@ import {
   GATE_PASSWORD_SALT_B64,
 } from './gate.config.js';
 
-const SESSION_STORAGE_KEY = 'wc2026_gate_session';
+const GATE_SESSION_KEY = 'wc2026_gate_session';
 const BLAZE_KEY_SESSION = 'wc2026_blaze_key_session';
 const BLAZE_KEY_LABEL = '|blaze-key-v1';
 const EXTERNAL_SCRIPTS = [
@@ -127,7 +127,7 @@ function isConfiguredGate() {
 
 function hasValidSession() {
   try {
-    const stored = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const stored = localStorage.getItem(GATE_SESSION_KEY);
     if (!stored) return false;
     const storedBytes = decodeBase64(stored);
     const expectedBytes = decodeBase64(GATE_PASSWORD_HASH_B64);
@@ -138,17 +138,17 @@ function hasValidSession() {
 }
 
 function getStoredBlazeApiKey() {
-  return sessionStorage.getItem(BLAZE_KEY_SESSION);
+  return localStorage.getItem(BLAZE_KEY_SESSION);
 }
 
 function establishSession(blazeApiKey) {
-  sessionStorage.setItem(SESSION_STORAGE_KEY, GATE_PASSWORD_HASH_B64);
-  sessionStorage.setItem(BLAZE_KEY_SESSION, blazeApiKey);
+  localStorage.setItem(GATE_SESSION_KEY, GATE_PASSWORD_HASH_B64);
+  localStorage.setItem(BLAZE_KEY_SESSION, blazeApiKey);
 }
 
 function clearSession() {
-  sessionStorage.removeItem(SESSION_STORAGE_KEY);
-  sessionStorage.removeItem(BLAZE_KEY_SESSION);
+  localStorage.removeItem(GATE_SESSION_KEY);
+  localStorage.removeItem(BLAZE_KEY_SESSION);
 }
 
 function loadScript(src) {
