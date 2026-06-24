@@ -4,3 +4,4 @@ desktop.ini
 *.log
 .env
 .env.*
+src/blaze.config.js

@@ -8,13 +8,12 @@ import {
 } from './countryMap.js';
 import {
   hideHoverCard,
+  getActiveCountry,
   initBlaze,
   isCoarsePointerDevice,
   notifyLiveMatchLabelsReady,
   playHighlights,
   showHoverCard,
-  updateHoverCardPosition,
-  getActiveCountry,
 } from './blaze.js';
 import { initMatchStats, initLiveHype, initTeamPoints } from './matchStats.js';
 import {
@@ -91,7 +90,6 @@ const STADIUM_HOVER_DELAY_MS = 220;
 const SELECTED_COUNTRY_STATS_MS = 5000;
 const FLY_TRANSITION_MS = 1200;
 const FOCUSED_SCREEN_ALTITUDE = 0.068;
-const BASE_SCREEN_ALTITUDE = 0.006;
 
 let stadiumHoverTimeout = null;
 let stadiumLeaveTimeout = null;
@@ -104,8 +102,7 @@ let leaveTimeout = null;
 let pendingCountryKey = null;
 let selectedCountryStatsTimeout = null;
 let selectedCountryAutoDismiss = false;
-let selectedCardFollowsPointer = false;
-let selectedCardPositionRaf = null;
+let selectedCardRevealTimer = null;
 let globeApi = null;
 
 function initStarfield() {
@@ -189,7 +186,7 @@ function initPlanets() {
 
   const isMobile = window.innerWidth < 768;
   const count = 0;  
-  // const count = isMobile ? 4 : 7;
+  // const count = isMobile ? 2 : 4;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -244,25 +241,42 @@ function initPlanets() {
 
 function trackPointer(event) {
   lastPointer = { x: event.clientX, y: event.clientY };
-  if (selectedCardFollowsPointer || !selectedCountryAutoDismiss) {
-    updateHoverCardPosition(lastPointer.x, lastPointer.y);
-  }
-  updateStadiumCardPosition(lastPointer.x, lastPointer.y);
-}
-
-function stopSelectedCardAnchorLoop() {
-  if (selectedCardPositionRaf) {
-    cancelAnimationFrame(selectedCardPositionRaf);
-    selectedCardPositionRaf = null;
+  if (!isTouchDevice) {
+    updateStadiumCardPosition(lastPointer.x, lastPointer.y);
+    return;
   }
 }
 
-function positionSelectedCardAtCountry(countryName, elapsedMs = 0) {
-  const altitude =
-    elapsedMs >= FLY_TRANSITION_MS ? FOCUSED_SCREEN_ALTITUDE : BASE_SCREEN_ALTITUDE;
-  const pos = globeApi?.getCountryScreenPosition(countryName, altitude);
-  if (pos) updateHoverCardPosition(pos.x, pos.y);
-  return pos;
+function scheduleSelectedCountryDismiss() {
+  clearTimeout(selectedCountryStatsTimeout);
+  selectedCountryStatsTimeout = setTimeout(() => {
+    selectedCountryStatsTimeout = null;
+    selectedCountryAutoDismiss = false;
+    hideHoverCard();
+    setGlobeRotationPausedFor('stats', false);
+    globeApi?.clearHover();
+  }, SELECTED_COUNTRY_STATS_MS);
+}
+
+function clearSelectedCardRevealTimer() {
+  if (selectedCardRevealTimer) {
+    clearTimeout(selectedCardRevealTimer);
+    selectedCardRevealTimer = null;
+  }
+}
+
+function clearSelectedCountryAutoDismiss() {
+  clearTimeout(selectedCountryStatsTimeout);
+  selectedCountryStatsTimeout = null;
+  selectedCountryAutoDismiss = false;
+  clearSelectedCardRevealTimer();
+}
+
+function cancelSelectedCountryAutoDismiss() {
+  if (!selectedCountryAutoDismiss) return;
+  clearTimeout(selectedCountryStatsTimeout);
+  selectedCountryStatsTimeout = null;
+  selectedCountryAutoDismiss = false;
 }
 
 function getGlobeCenterClientPosition() {
@@ -272,48 +286,13 @@ function getGlobeCenterClientPosition() {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-function scheduleSelectedCountryDismiss() {
-  clearTimeout(selectedCountryStatsTimeout);
-  selectedCountryStatsTimeout = setTimeout(() => {
-    selectedCountryStatsTimeout = null;
-    selectedCountryAutoDismiss = false;
-    selectedCardFollowsPointer = false;
-    stopSelectedCardAnchorLoop();
-    hideHoverCard();
-    setGlobeRotationPausedFor('stats', false);
-    globeApi?.clearHover();
-  }, SELECTED_COUNTRY_STATS_MS);
-}
-
-function startSelectedCardAnchorLoop(countryName, anchorStart) {
-  stopSelectedCardAnchorLoop();
-
-  function tick(now) {
-    if (selectedCardFollowsPointer || !selectedCountryAutoDismiss) {
-      stopSelectedCardAnchorLoop();
-      return;
-    }
-    positionSelectedCardAtCountry(countryName, now - anchorStart);
-    selectedCardPositionRaf = requestAnimationFrame(tick);
-  }
-
-  selectedCardPositionRaf = requestAnimationFrame(tick);
-}
-
-function clearSelectedCountryAutoDismiss() {
-  clearTimeout(selectedCountryStatsTimeout);
-  selectedCountryStatsTimeout = null;
-  selectedCountryAutoDismiss = false;
-  stopSelectedCardAnchorLoop();
-}
-
-function cancelSelectedCountryAutoDismiss() {
-  if (!selectedCountryAutoDismiss) return;
-  clearTimeout(selectedCountryStatsTimeout);
-  selectedCountryStatsTimeout = null;
-  selectedCountryAutoDismiss = false;
-  selectedCardFollowsPointer = true;
-  stopSelectedCardAnchorLoop();
+function getCountryCardAnchor(countryName) {
+  const pos = globeApi?.getCountryScreenPosition(countryName, FOCUSED_SCREEN_ALTITUDE);
+  const fallback = getGlobeCenterClientPosition();
+  return {
+    x: pos?.x ?? fallback.x,
+    y: pos?.y ?? fallback.y,
+  };
 }
 
 function showSelectedCountryStatsCard(labelIdentifier, countryName) {
@@ -321,48 +300,27 @@ function showSelectedCountryStatsCard(labelIdentifier, countryName) {
   clearTimeout(hoverTimeout);
   clearTimeout(leaveTimeout);
   pendingCountryKey = null;
-  selectedCardFollowsPointer = false;
 
   setGlobeRotationPausedFor('stats', true);
   selectedCountryAutoDismiss = true;
 
-  const anchorStart = performance.now();
-  const MAX_ANCHOR_WAIT_MS = 2000;
+  selectedCardRevealTimer = setTimeout(() => {
+    selectedCardRevealTimer = null;
+    if (!selectedCountryAutoDismiss) return;
 
-  function tryReveal(now) {
-    if (!selectedCountryAutoDismiss) {
-      stopSelectedCardAnchorLoop();
-      return;
-    }
-
-    const elapsed = now - anchorStart;
-    const pos = globeApi?.getCountryScreenPosition(
+    const anchor = getCountryCardAnchor(countryName);
+    showHoverCard({
+      labelIdentifier,
       countryName,
-      elapsed >= FLY_TRANSITION_MS ? FOCUSED_SCREEN_ALTITUDE : BASE_SCREEN_ALTITUDE
-    );
-
-    if (pos || elapsed >= MAX_ANCHOR_WAIT_MS) {
-      const fallback = getGlobeCenterClientPosition();
-      showHoverCard({
-        labelIdentifier,
-        countryName,
-        x: pos?.x ?? fallback.x,
-        y: pos?.y ?? fallback.y,
-      });
-      startSelectedCardAnchorLoop(countryName, anchorStart);
-      scheduleSelectedCountryDismiss();
-      return;
-    }
-
-    selectedCardPositionRaf = requestAnimationFrame(tryReveal);
-  }
-
-  selectedCardPositionRaf = requestAnimationFrame(tryReveal);
+      x: anchor.x,
+      y: anchor.y,
+    });
+    scheduleSelectedCountryDismiss();
+  }, FLY_TRANSITION_MS + 50);
 }
 
 function dismissCountryHoverCard() {
   clearSelectedCountryAutoDismiss();
-  selectedCardFollowsPointer = false;
   clearTimeout(hoverTimeout);
   clearTimeout(leaveTimeout);
   pendingCountryKey = null;
@@ -371,10 +329,10 @@ function dismissCountryHoverCard() {
   globeApi?.clearHover();
 }
 
-const rotationPauseReasons = { stadium: false, stats: false };
+const rotationPauseReasons = { stadium: false, stats: false, player: false };
 
 function setGlobeRotationPausedFor(reason, paused) {
-  if (isTouchDevice) return;
+  if (reason !== 'player' && isTouchDevice) return;
   if (rotationPauseReasons[reason] === paused) return;
   rotationPauseReasons[reason] = paused;
   if (paused) globeApi?.pauseAutoRotate();
@@ -458,7 +416,6 @@ function scheduleHoverCard(payload) {
 
   if (pendingCountryKey === countryKey && hoverTimeout) return;
   if (getActiveCountry() === getCountryDisplayName(payload.countryName)) {
-    updateHoverCardPosition(lastPointer.x, lastPointer.y);
     return;
   }
 
@@ -912,6 +869,12 @@ function handleMobileCountrySelect(country) {
   });
 }
 
+function flyToCountrySilently(countryName) {
+  const displayName = getCountryDisplayName(countryName);
+  if (!displayName) return;
+  globeApi?.flyToCountry(displayName, FLY_TRANSITION_MS, { silent: true });
+}
+
 function initGlobeInteractions() {
   const container = document.getElementById('globe-container');
 
@@ -930,6 +893,8 @@ function initGlobeInteractions() {
       scheduleHideHoverCard();
     },
     onCountryClick: (country) => {
+      flyToCountrySilently(country.name);
+
       if (isTouchDevice) {
         handleMobileCountrySelect(country);
         return;
@@ -976,10 +941,12 @@ async function boot() {
   initBlaze({
     onMobileClose: () => globeApi?.clearFocus(),
     onPlayerDidAppear: () => {
+      setGlobeRotationPausedFor('player', true);
       const controls = globeApi?.globe?.controls?.();
       if (controls) controls.enabled = false;
     },
     onPlayerDismissed: () => {
+      setGlobeRotationPausedFor('player', false);
       const controls = globeApi?.globe?.controls?.();
       if (controls) controls.enabled = true;
     },

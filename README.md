@@ -41,9 +41,11 @@ Interactive 3D globe for FIFA World Cup 2026 — explore host cities, live match
 
 ## Local development
 
-Serve the project root as static files. Python works well:
+1. Copy `src/blaze.config.example.js` to `src/blaze.config.js` and set your Blaze API key.
+2. Serve the project root as static files. Python works well:
 
 ```bash
+cp src/blaze.config.example.js src/blaze.config.js
 python -m http.server 8080
 ```
 
@@ -52,6 +54,8 @@ Then open [http://localhost:8080](http://localhost:8080).
 ## Deployment
 
 Pushes to `main` deploy automatically to **GitHub Pages** via `.github/workflows/deploy-pages.yml`. Enable Pages under **Settings → Pages → GitHub Actions** on first setup.
+
+Add a repository secret **`BLAZE_API_KEY`** (Settings → Secrets and variables → Actions). The deploy workflow writes it into `src/blaze.config.js` at build time; the key is not committed to the repo.
 
 ## Data sources
 

@@ -824,7 +824,7 @@ export function createGlobe(container, callbacks) {
     pauseAutoRotate,
     resumeAutoRotate,
     getCountryScreenPosition,
-    flyToCountry(countryTitle, transitionMs = 1200) {
+    flyToCountry(countryTitle, transitionMs = 1200, { silent = false } = {}) {
       const feature = findFeatureByTitle(countryTitle);
       if (!feature) return false;
 
@@ -843,7 +843,7 @@ export function createGlobe(container, callbacks) {
 
       setTimeout(() => syncGlobeRotation(lng, lat), transitionMs);
 
-      if (!isMobile) {
+      if (!isMobile && !silent) {
         setTimeout(() => raiseFocusedCountry(feature), transitionMs);
       }
 

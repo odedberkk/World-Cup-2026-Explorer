@@ -25,7 +25,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare static site
+        env:
+          BLAZE_API_KEY: ${{ secrets.BLAZE_API_KEY }}
         run: |
+          if [ -z "$BLAZE_API_KEY" ]; then
+            echo "BLAZE_API_KEY repository secret is not set."
+            exit 1
+          fi
+
+          node -e "const fs=require('fs'); fs.writeFileSync('src/blaze.config.js', 'export const BLAZE_API_KEY = ' + JSON.stringify(process.env.BLAZE_API_KEY) + ';\\n')"
+
           mkdir -p _site
           cp index.html styles.css .nojekyll _site/
           cp -r src assets _site/

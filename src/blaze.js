@@ -7,7 +7,7 @@ import {
   renderStatsHtml,
   renderStatsLoadingHtml,
 } from './matchStats.js';
-const API_KEY = '9c0a71350a6e4727a627499c8eec3090';
+import { BLAZE_API_KEY } from './blaze.config.js';
 
 const LIVE_STORY_PROBE_CONTAINER_ID = 'blaze-live-story-probe';
 const LIVE_STORY_PROBE_TTL_MS = 45_000;
@@ -18,7 +18,7 @@ let activeCountry = null;
 let activeLabelIdentifier = null;
 let activePlaybackMode = 'moment';
 let onMobileCardClose = null;
-let onMobilePlayerDismissed = null;
+let onPlayerDismissedCallback = null;
 let onPlayerDidAppearCallback = null;
 let onStatsCountrySelect = null;
 let playerOpen = false;
@@ -34,7 +34,7 @@ let sdkConnectHandled = false;
 let overlayReleaseTimers = [];
 
 const MOBILE_SHEET_ELEVATED_CLASS = 'mobile-sheet-elevated';
-const SDK_OVERLAY_RELEASE_DELAYS_MS = [0, 16, 50, 100, 200, 400, 800, 1200, 1800, 2500];
+const SDK_OVERLAY_RELEASE_FOLLOWUP_MS = [16, 50, 100, 200, 400];
 
 const SDK_MODAL_SELECTORS = [
   'blaze-widget-moment-modal',
@@ -443,7 +443,7 @@ function renderBody(html) {
   body.innerHTML = html;
 }
 
-function isCardVisible() {
+export function isCardVisible() {
   const card = hoverCardEl();
   return card && card.classList.contains('visible');
 }
@@ -491,8 +491,10 @@ function restoreBlazeSdkModalLayers(root) {
 
   SDK_MODAL_SELECTORS.forEach((selector) => {
     root.querySelectorAll(selector).forEach((node) => {
+      if (!(node instanceof HTMLElement)) return;
       node.style.removeProperty('pointer-events');
       node.style.removeProperty('visibility');
+      node.style.removeProperty('display');
     });
   });
 }
@@ -504,6 +506,7 @@ function releaseSdkPlayerOverlay() {
 
   document.querySelectorAll('blaze-sdk').forEach((host) => {
     host.style.pointerEvents = 'none';
+    host.style.setProperty('touch-action', 'auto', 'important');
 
     const root = host.shadowRoot;
     if (!root) return;
@@ -512,8 +515,10 @@ function releaseSdkPlayerOverlay() {
 
     SDK_MODAL_SELECTORS.forEach((selector) => {
       root.querySelectorAll(selector).forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
         node.style.pointerEvents = 'none';
         node.style.visibility = 'hidden';
+        node.style.display = 'none';
       });
     });
   });
@@ -524,6 +529,7 @@ function releaseSdkPlayerOverlay() {
 function activateBlazeSdkForPlayer() {
   document.querySelectorAll('blaze-sdk').forEach((host) => {
     host.style.removeProperty('pointer-events');
+    host.style.removeProperty('touch-action');
 
     const root = host.shadowRoot;
     if (!root) return;
@@ -537,20 +543,18 @@ function cancelOverlayReleaseTimers() {
   overlayReleaseTimers = [];
 }
 
-function scheduleSdkOverlayRelease() {
+function scheduleSdkOverlayReleaseFollowUp() {
   cancelOverlayReleaseTimers();
 
-  const run = () => {
-    releaseSdkPlayerOverlay();
-    restoreMobileBackdrop();
-  };
-
-  SDK_OVERLAY_RELEASE_DELAYS_MS.forEach((delay) => {
-    overlayReleaseTimers.push(setTimeout(run, delay));
+  SDK_OVERLAY_RELEASE_FOLLOWUP_MS.forEach((delay) => {
+    overlayReleaseTimers.push(
+      setTimeout(() => {
+        if (playerOpen) return;
+        releaseSdkPlayerOverlay();
+        restoreMobileBackdrop();
+      }, delay)
+    );
   });
-
-  const finalDelay = SDK_OVERLAY_RELEASE_DELAYS_MS.at(-1) ?? 2500;
-  overlayReleaseTimers.push(setTimeout(() => onMobilePlayerDismissed?.(), finalDelay));
 }
 
 function handlePlayerDidAppear() {
@@ -567,7 +571,10 @@ function handlePlayerDidAppear() {
 
 function handlePlayerDismissed() {
   playerOpen = false;
-  scheduleSdkOverlayRelease();
+  onPlayerDismissedCallback?.();
+  releaseSdkPlayerOverlay();
+  restoreMobileBackdrop();
+  scheduleSdkOverlayReleaseFollowUp();
 }
 
 function setupSdkPlayerDelegates() {
@@ -585,18 +592,22 @@ function setupSdkPlayerDelegates() {
   }
 }
 
-async function populateStats(displayName, x, y) {
+async function populateStats(displayName, x, y, { keepPosition = false } = {}) {
   try {
     const stats = await getCountryStats(displayName);
     if (activeCountry !== displayName) return;
 
     renderBody(renderStatsHtml(stats));
     updateWatchHighlightsButton(displayName, activeLabelIdentifier);
-    positionHoverCard(x, y);
+    if (!keepPosition || isCoarsePointerDevice()) {
+      positionHoverCard(x, y);
+    }
   } catch {
     if (activeCountry !== displayName) return;
     renderBody('<div class="hover-card-stats hover-card-stats--empty">Could not load stats</div>');
-    positionHoverCard(x, y);
+    if (!keepPosition || isCoarsePointerDevice()) {
+      positionHoverCard(x, y);
+    }
   }
 }
 
@@ -607,7 +618,7 @@ export function initBlaze({
   onStatsCountrySelect: onCountrySelect,
 } = {}) {
   onMobileCardClose = onMobileClose ?? null;
-  onMobilePlayerDismissed = onPlayerDismissed ?? null;
+  onPlayerDismissedCallback = onPlayerDismissed ?? null;
   onPlayerDidAppearCallback = onPlayerDidAppear ?? null;
   onStatsCountrySelect = onCountrySelect ?? null;
 
@@ -616,7 +627,7 @@ export function initBlaze({
   if (typeof BlazeSDK !== 'undefined' && BlazeSDK.isInitialized?.()) {
     handleSdkConnect();
   } else if (!BlazeSDK.isInitialized()) {
-    BlazeSDK.Initialize(API_KEY, {
+    BlazeSDK.Initialize(BLAZE_API_KEY, {
       runInShadowDom: true,
       shouldModifyUrlWithContentId: false,
     });
@@ -673,7 +684,13 @@ export function updateHoverCardPosition(x, y) {
   positionHoverCard(x, y);
 }
 
-export function showHoverCard({ labelIdentifier = null, countryName, x, y }) {
+export function showHoverCard({
+  labelIdentifier = null,
+  countryName,
+  x,
+  y,
+  keepPosition = false,
+}) {
   if (!countryName) return;
 
   const card = hoverCardEl();
@@ -682,6 +699,7 @@ export function showHoverCard({ labelIdentifier = null, countryName, x, y }) {
   const displayName = getCountryDisplayName(countryName);
   const sameCountry = activeCountry === displayName && isCardVisible();
   const isMobile = isCoarsePointerDevice();
+  const anchorCard = isMobile || (!keepPosition && !sameCountry);
 
   activeCountry = displayName;
   activeLabelIdentifier = labelIdentifier;
@@ -692,7 +710,9 @@ export function showHoverCard({ labelIdentifier = null, countryName, x, y }) {
     renderBody(renderStatsLoadingHtml());
   }
 
-  positionHoverCard(x, y);
+  if (anchorCard) {
+    positionHoverCard(x, y);
+  }
 
   card.classList.toggle('hover-card--mobile', isMobile);
   setMobileActionsVisible(isMobile && Boolean(labelIdentifier));
@@ -704,7 +724,7 @@ export function showHoverCard({ labelIdentifier = null, countryName, x, y }) {
   card.classList.add('visible');
   card.setAttribute('aria-hidden', 'false');
 
-  populateStats(displayName, x, y);
+  populateStats(displayName, x, y, { keepPosition: !anchorCard });
 }
 
 export async function playHighlights(labelIdentifier, countryName) {
